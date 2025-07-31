@@ -1,3 +1,6 @@
+// Imports
+import { deserializeWorld } from './world.js';
+
 // Constants
 const uploadButton = document.getElementById('uploadWorld');
 
@@ -11,7 +14,8 @@ uploadButton.addEventListener('click', event => {
 		const reader = new FileReader();
 		reader.onload = function() {
 			const worldJson = JSON.parse(this.result);
-			console.log(worldJson);
+			world = deserializeWorld(worldJson);
+			console.log(world);
 		}
 		reader.readAsText(file);
 	});
