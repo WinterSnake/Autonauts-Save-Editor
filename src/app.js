@@ -1,8 +1,9 @@
 // Imports
-import { deserializeWorld } from './world.js';
+import { deserializeWorld, serializeWorld } from './world.js';
 
 // Constants
 const uploadButton = document.getElementById('uploadWorld');
+const downloadButton = document.getElementById('downloadWorld');
 
 // Body
 let world = undefined;
@@ -15,9 +16,16 @@ uploadButton.addEventListener('click', event => {
 		reader.onload = function() {
 			const worldJson = JSON.parse(this.result);
 			world = deserializeWorld(worldJson);
-			console.log(world);
+			downloadButton.disabled = false;
 		}
 		reader.readAsText(file);
 	});
 	fileInput.click();
+});
+downloadButton.addEventListener('click', event => {
+	const worldJson = serializeWorld(world);
+	const link = document.createElement('a');
+	link.href = URL.createObjectURL(new Blob([JSON.stringify(worldJson)], { type: "application/json" }));
+	link.download = "world.json";
+	link.click();
 });
