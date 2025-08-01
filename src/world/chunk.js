@@ -1,3 +1,6 @@
+// Imports
+import { serializeEntity } from './entity.js';
+
 // Constants
 export const CHUNK_WIDTH  = 21;
 export const CHUNK_HEIGHT = 12;
@@ -50,13 +53,7 @@ export function compressChunks(chunks, size) {
 			}
 			// Entities
 			for (const entity of tile.entities) {
-				const entityJson = {
-					ID: entity.name,
-					UID: entity.uid,
-					TX: x,
-					TY: y
-				}
-				entities.push(entityJson);
+				entities.push(serializeEntity(entity, x, y));
 			}
 		}
 	}

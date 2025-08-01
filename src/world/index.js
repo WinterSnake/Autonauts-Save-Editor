@@ -1,5 +1,6 @@
 // Imports
 import { CHUNK_WIDTH, CHUNK_HEIGHT, compressChunks, decompressChunks, globalToChunkPosition } from './chunk.js';
+import { deserializeEntity } from './entity.js';
 
 // Constants
 const VERSION = "140.2";
@@ -14,12 +15,8 @@ export function deserializeWorld(worldJson) {
 	// Entities
 	for (let i = 0; i < worldJson['Objects'].length; ++i) {
 		const entityJson = worldJson['Objects'][i];
-		const entity = {
-			name: entityJson['ID'],
-			uid: entityJson['UID'],
-		};
 		const [cX, cY, dX, dY] = globalToChunkPosition(entityJson['TX'], entityJson['TY']);
-		chunks[cY][cX].tiles[dY][dX].entities.push(entity);
+		chunks[cY][cX].tiles[dY][dX].entities.push(deserializeEntity(entityJson));
 	}
 	return new World(chunks);
 }
