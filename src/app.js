@@ -1,5 +1,5 @@
 // Imports
-import { deserializeWorld, serializeWorld } from './world.js';
+import { deserializeWorld, serializeWorld } from './world/index.js';
 
 // Constants
 const uploadButton = document.getElementById('uploadWorld');
