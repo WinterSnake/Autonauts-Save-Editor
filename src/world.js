@@ -4,7 +4,19 @@ const CHUNK_HEIGHT = 12;
 const VERSION = "140.2";
 
 // Functions
+function globalToChunkPosition(x, y) {
+	return [
+		// Chunk (cX, cY)
+		Math.floor(x / CHUNK_WIDTH),
+		Math.floor(y / CHUNK_HEIGHT),
+		// Offset (dX, dY)
+		x % CHUNK_WIDTH,
+		y % CHUNK_HEIGHT
+	];
+}
+
 function compressChunks(chunks, size) {
+	const entities = [];
 	// Tile disassembler
 	let tiles = [];
 	const tileCompressor = function*() {
@@ -30,17 +42,21 @@ function compressChunks(chunks, size) {
 	tileIter.next();
 	for (let y = 0; y < size[1]; ++y) {
 		for (let x = 0; x < size[0]; ++x) {
-			const [cX, cY, dX, dY] = [
-				// Chunk (cX, cY)
-				Math.floor(x / CHUNK_WIDTH),
-				Math.floor(y / CHUNK_HEIGHT),
-				// Offset (dX, dY)
-				x % CHUNK_WIDTH,
-				y % CHUNK_HEIGHT
-			];
-			const compressed = tileIter.next(chunks[cY][cX].tiles[dY][dX]);
+			const [cX, cY, dX, dY] = globalToChunkPosition(x, y);
+			const tile = chunks[cY][cX].tiles[dY][dX];
+			const compressed = tileIter.next(tile.id);
 			if (compressed.value !== undefined) {
 				tiles = tiles.concat(compressed.value);
+			}
+			// Entities
+			for (const entity of tile.entities) {
+				const entityJson = {
+					ID: entity.name,
+					UID: entity.uid,
+					TX: x,
+					TY: y
+				}
+				entities.push(entityJson);
 			}
 		}
 	}
@@ -52,7 +68,7 @@ function compressChunks(chunks, size) {
 			visibility.push(+chunks[y][x].isVisible);
 		}
 	}
-	return [visibility, tiles];
+	return [visibility, tiles, entities];
 }
 
 function decompressChunks(visibility, compressedTiles, size) {
@@ -107,15 +123,7 @@ export function deserializeWorld(worldJson) {
 			name: entityJson['ID'],
 			uid: entityJson['UID'],
 		};
-		const [x, y] = [entityJson['TX'], entityJson['TY']];
-		const [cX, cY, dX, dY] = [
-			// Chunk (cX, cY)
-			Math.floor(x / CHUNK_WIDTH),
-			Math.floor(y / CHUNK_HEIGHT),
-			// Offset (dX, dY)
-			x % CHUNK_WIDTH,
-			y % CHUNK_HEIGHT
-		];
+		const [cX, cY, dX, dY] = globalToChunkPosition(entityJson['TX'], entityJson['TY']);
 		chunks[cY][cX].tiles[dY][dX].entities.push(entity);
 	}
 	return new World(chunks);
@@ -123,7 +131,7 @@ export function deserializeWorld(worldJson) {
 
 export function serializeWorld(world) {
 	// Chunks
-	const [visibility, tiles] = compressChunks(world.chunks, world.size);
+	const [visibility, tiles, entities] = compressChunks(world.chunks, world.size);
 	// Autonauts world object
 	return {
 		AutonautsWorld: 1,
@@ -137,7 +145,8 @@ export function serializeWorld(world) {
 		},
 		Plots: {
 			PlotsVisible: visibility
-		}
+		},
+		Objects: entities
 	}
 }
 
