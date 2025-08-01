@@ -4,9 +4,34 @@ import { deserializeEntity } from './entity.js';
 
 // Constants
 const VERSION = "140.2";
+const FLAGS = {
+	RandomObjects: 1 << 0,
+	BadgeUnlocks:  1 << 1,
+	Recording:     1 << 2,
+	Tutorial:      1 << 3,
+	BotRecharging: 1 << 4,
+	BotLimit:      1 << 5,
+};
 
 // Functions
 export function deserializeWorld(worldJson) {
+	// Options
+	const optionsJson = worldJson['GameOptions'];
+	let flags = 0;
+	if (optionsJson['RandomObjectsEnabled']) flags |= FLAGS.RandomObjects;
+	if (optionsJson['BadgeUnlocksEnabled'])  flags |= FLAGS.BadgeUnlocks;
+	if (optionsJson['RecordingEnabled'])     flags |= FLAGS.Recording;
+	if (optionsJson['TutorialEnabled'])      flags |= FLAGS.Tutorial;
+	if (optionsJson['BotRechargingEnabled']) flags |= FLAGS.BotRecharging;
+	if (optionsJson['BotLimitEnabled'])      flags |= FLAGS.BotLimit;
+	const spawn = [optionsJson['StartPositionX'], optionsJson['StartPositionY']];
+	const options = {
+		mode: optionsJson['GameModeName'].substring(4),
+		size: optionsJson['GameSize'],
+		flags: flags,
+		seed: optionsJson['Seed'],
+		planetName: optionsJson['Name'],
+	};
 	// Chunks
 	const tileJson = worldJson['Tiles'];
 	const visibilityJson = worldJson['Plots']['PlotsVisible'];
@@ -18,7 +43,7 @@ export function deserializeWorld(worldJson) {
 		const [cX, cY, dX, dY] = globalToChunkPosition(entityJson['TX'], entityJson['TY']);
 		chunks[cY][cX].tiles[dY][dX].entities.push(deserializeEntity(entityJson));
 	}
-	return new World(chunks);
+	return new World(options, spawn, chunks);
 }
 
 export function serializeWorld(world) {
@@ -29,6 +54,20 @@ export function serializeWorld(world) {
 		AutonautsWorld: 1,
 		Version: VERSION,
 		External: 0,
+		GameOptions: {
+			GameModeName: `Mode${world.options.mode}`,
+			GameSize: world.options.size,
+			RandomObjectsEnabled: Boolean((world.options.flags & FLAGS.RandomObjects) >> 0),
+			BadgeUnlocksEnabled:  Boolean((world.options.flags & FLAGS.BadgeUnlocks)  >> 1),
+			RecordingEnabled:     Boolean((world.options.flags & FLAGS.Recording)     >> 2),
+			TutorialEnabled:      Boolean((world.options.flags & FLAGS.Tutorial)      >> 3),
+			BotRechargingEnabled: Boolean((world.options.flags & FLAGS.BotRecharging) >> 4),
+			BotLimitEnabled:      Boolean((world.options.flags & FLAGS.BotLimit)      >> 5),
+			Seed: world.options.seed,
+			Name: world.options.planetName,
+			StartPositionX: world.spawn[0],
+			StartPositionY: world.spawn[1]
+		},
 		Tiles: {
 			RLE: 1,
 			TilesWide: world.size[0],
@@ -45,7 +84,9 @@ export function serializeWorld(world) {
 // Classes
 export class World {
 	/* Constructor */
-	constructor(chunks) {
+	constructor(options, spawn, chunks) {
+		this.options = options;
+		this.spawn = spawn;
 		this.chunks = chunks;
 	}
 	/* Instance Methods */
