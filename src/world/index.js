@@ -34,8 +34,8 @@ export function serializeWorld(world) {
 		External: 0,
 		Tiles: {
 			RLE: 1,
-			TilesWide: world.size[0] * CHUNK_WIDTH,
-			TilesHigh: world.size[1] * CHUNK_HEIGHT,
+			TilesWide: world.size[0],
+			TilesHigh: world.size[1],
 			TileTypes: tiles
 		},
 		Plots: {
@@ -62,6 +62,6 @@ export class World {
 	}
 	/* Properties */
 	get size() {
-		return [this.chunks[0].length, this.chunks.length];
+		return [this.chunks[0].length * CHUNK_WIDTH, this.chunks.length * CHUNK_HEIGHT];
 	}
 }

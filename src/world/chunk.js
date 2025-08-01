@@ -21,8 +21,8 @@ function* compressTiles() {
 	while (true) {
 		const value = yield result;
 		result = undefined;
-		if (current === null) current = value;
-		else if (value === null) break;
+		if (value === null) break;
+		else if (current === null) current = value;
 		else if (value !== current) {
 			result = [current, counter];
 			current = value;
@@ -34,9 +34,8 @@ function* compressTiles() {
 	yield [current, counter];
 }
 
-export function compressChunks(chunks, chunkSize) {
+export function compressChunks(chunks, size) {
 	const entities = [];
-	const size = [chunkSize[0] * CHUNK_WIDTH, chunkSize[1] * CHUNK_HEIGHT];
 	// Tile disassembler
 	let tiles = [];
 	const tileIter = compressTiles();
