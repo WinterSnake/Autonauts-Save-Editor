@@ -1,9 +1,62 @@
 // Constants
 const CHUNK_WIDTH  = 21;
 const CHUNK_HEIGHT = 12;
+const VERSION = "140.2";
 
 // Functions
-function buildChunks(visibility, compressedTiles, size) {
+function compressChunks(chunks, size) {
+	// Tile disassembler
+	let tiles = [];
+	const tileCompressor = function*() {
+		let current = null;
+		let counter = 0;
+		let result = undefined;
+		while (true) {
+			const value = yield result;
+			result = undefined;
+			if (current === null) current = value;
+			else if (value === null) break;
+			else if (value !== current) {
+				result = [current, counter];
+				current = value;
+				counter = 0;
+			}
+			counter += 1;
+		}
+		if (current === null) throw new Error("Expected current to be set before ending loop");
+		yield [current, counter];
+	};
+	const tileIter = tileCompressor();
+	tileIter.next();
+	for (let y = 0; y < size[1]; ++y) {
+		for (let x = 0; x < size[0]; ++x) {
+			const [cX, cY, dX, dY] = [
+				// Chunk (cX, cY)
+				Math.floor(x / CHUNK_WIDTH),
+				Math.floor(y / CHUNK_HEIGHT),
+				// Offset (dX, dY)
+				x % CHUNK_WIDTH,
+				y % CHUNK_HEIGHT
+			];
+			const value = chunks[cY][cX].tiles[dY][dX];
+			const compressed = tileIter.next(value);
+			if (compressed.value !== undefined) {
+				tiles = tiles.concat(compressed.value);
+			}
+		}
+	}
+	tiles = tiles.concat(tileIter.next(null).value);
+	// Chunk disassembler
+	const visibility = [];
+	for (let y = 0; y < chunks.length; ++y) {
+		for (let x = 0; x < chunks[y].length; ++x) {
+			visibility.push(+chunks[y][x].isVisible);
+		}
+	}
+	return [visibility, tiles];
+}
+
+function decompressChunks(visibility, compressedTiles, size) {
 	// Tile assembler
 	const tiles = [...Array(size[1] / CHUNK_HEIGHT)].map(row => [...Array(size[0] / CHUNK_WIDTH)].map(y => [...Array(CHUNK_HEIGHT)].map(x => [...Array(CHUNK_WIDTH)])));
 	const tileDecompresser = function*() {
@@ -44,14 +97,41 @@ export function deserializeWorld(worldJson) {
 	// Chunks
 	const tileJson = worldJson['Tiles'];
 	const size = [tileJson['TilesWide'], tileJson['TilesHigh']];
-	const chunks = buildChunks(worldJson['Plots']['PlotsVisible'], tileJson['TileTypes'], size);
+	const chunks = decompressChunks(worldJson['Plots']['PlotsVisible'], tileJson['TileTypes'], size);
 	return new World(chunks);
 }
 
+export function serializeWorld(world) {
+	// Chunks
+	const [visibility, tiles] = compressChunks(world.chunks, world.size);
+	// Autonauts world object
+	return {
+		AutonautsWorld: 1,
+		Version: VERSION,
+		External: 0,
+		Tiles: {
+			RLE: 1,
+			TilesWide: world.size[0],
+			TilesHigh: world.size[1],
+			TileTypes: tiles
+		},
+		Plots: {
+			PlotsVisible: visibility
+		}
+	}
+}
+
 // Classes
-export class World {
+class World {
 	/* Constructor */
 	constructor(chunks) {
 		this.chunks = chunks;
+	}
+	/* Properties */
+	get size() {
+		return [this.chunks[0].length * CHUNK_WIDTH, this.chunks.length * CHUNK_HEIGHT];
+	}
+	get chunkSize() {
+		return [this.chunks[0].length, this.chunks.length];
 	}
 }
