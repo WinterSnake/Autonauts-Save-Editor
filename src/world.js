@@ -75,7 +75,10 @@ function decompressChunks(visibility, compressedTiles, size) {
 			i % CHUNK_WIDTH,
 			Math.floor(i / size[0]) % CHUNK_HEIGHT
 		];
-		tiles[y][x][dY][dX] = tileIter.next().value;
+		tiles[y][x][dY][dX] = {
+			id: tileIter.next().value,
+			entities: []
+		};
 	}
 	// Chunk assembler
 	const chunks = [...Array(size[1] / CHUNK_HEIGHT)].map(row => [...Array(size[0] / CHUNK_WIDTH)]);
@@ -97,6 +100,24 @@ export function deserializeWorld(worldJson) {
 	const tileJson = worldJson['Tiles'];
 	const size = [tileJson['TilesWide'], tileJson['TilesHigh']];
 	const chunks = decompressChunks(worldJson['Plots']['PlotsVisible'], tileJson['TileTypes'], size);
+	// Entities
+	for (let i = 0; i < worldJson['Objects'].length; ++i) {
+		const entityJson = worldJson['Objects'][i];
+		const entity = {
+			name: entityJson['ID'],
+			uid: entityJson['UID'],
+		};
+		const [x, y] = [entityJson['TX'], entityJson['TY']];
+		const [cX, cY, dX, dY] = [
+			// Chunk (cX, cY)
+			Math.floor(x / CHUNK_WIDTH),
+			Math.floor(y / CHUNK_HEIGHT),
+			// Offset (dX, dY)
+			x % CHUNK_WIDTH,
+			y % CHUNK_HEIGHT
+		];
+		chunks[cY][cX].tiles[dY][dX].entities.push(entity);
+	}
 	return new World(chunks);
 }
 
