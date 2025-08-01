@@ -38,8 +38,7 @@ function compressChunks(chunks, size) {
 				x % CHUNK_WIDTH,
 				y % CHUNK_HEIGHT
 			];
-			const value = chunks[cY][cX].tiles[dY][dX];
-			const compressed = tileIter.next(value);
+			const compressed = tileIter.next(chunks[cY][cX].tiles[dY][dX]);
 			if (compressed.value !== undefined) {
 				tiles = tiles.concat(compressed.value);
 			}
