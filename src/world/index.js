@@ -1,5 +1,5 @@
 // Imports
-import { CHUNK_WIDTH, CHUNK_HEIGHT, compressChunks, decompressChunks, globalToChunkPosition } from './chunk.js';
+import { compressChunks, decompressChunks, globalToChunkPosition } from './chunk.js';
 
 // Constants
 const VERSION = "140.2";
@@ -27,7 +27,6 @@ export function deserializeWorld(worldJson) {
 export function serializeWorld(world) {
 	// Chunks | Entities
 	const [visibility, tiles, entities] = compressChunks(world.chunks, world.size);
-	console.log(tiles);
 	// Autonauts world object
 	return {
 		AutonautsWorld: 1,
@@ -52,11 +51,17 @@ export class World {
 	constructor(chunks) {
 		this.chunks = chunks;
 	}
+	/* Instance Methods */
+	getChunk(x, y) {
+		const [cX, cY, _] = globalToChunkPosition(x, y);
+		return this.chunks[cY][cX];
+	}
+	getTile(x, y) {
+		const [cX, cY, dX, dY] = globalToChunkPosition(x, y);
+		return this.chunks[cY][cX].tiles[dY][dX];
+	}
 	/* Properties */
 	get size() {
-		return [this.chunks[0].length * CHUNK_WIDTH, this.chunks.length * CHUNK_HEIGHT];
+		return [this.chunks[0].length, this.chunks.length];
 	}
 }
-
-// Exports
-export { CHUNK_WIDTH, CHUNK_HEIGHT };

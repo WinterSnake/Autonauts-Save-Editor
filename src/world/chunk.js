@@ -1,6 +1,6 @@
 // Constants
-export const CHUNK_WIDTH  = 21;
-export const CHUNK_HEIGHT = 12;
+const CHUNK_WIDTH  = 21;
+const CHUNK_HEIGHT = 12;
 
 // Functions
 export function globalToChunkPosition(x, y) {
@@ -34,9 +34,9 @@ function* compressTiles() {
 	yield [current, counter];
 }
 
-export function compressChunks(chunks, size) {
+export function compressChunks(chunks, chunkSize) {
 	const entities = [];
-	const chunkSize = [size[0] / CHUNK_WIDTH, size[1] / CHUNK_HEIGHT];
+	const size = [chunkSize[0] * CHUNK_WIDTH, chunkSize[1] * CHUNK_HEIGHT];
 	// Tile disassembler
 	let tiles = [];
 	const tileIter = compressTiles();
