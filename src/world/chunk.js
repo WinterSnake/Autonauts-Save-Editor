@@ -1,6 +1,6 @@
 // Constants
-const CHUNK_WIDTH  = 21;
-const CHUNK_HEIGHT = 12;
+export const CHUNK_WIDTH  = 21;
+export const CHUNK_HEIGHT = 12;
 
 // Functions
 export function globalToChunkPosition(x, y) {

@@ -1,5 +1,5 @@
 // Imports
-import { compressChunks, decompressChunks, globalToChunkPosition } from './chunk.js';
+import { CHUNK_WIDTH, CHUNK_HEIGHT, compressChunks, decompressChunks, globalToChunkPosition } from './chunk.js';
 
 // Constants
 const VERSION = "140.2";
@@ -34,8 +34,8 @@ export function serializeWorld(world) {
 		External: 0,
 		Tiles: {
 			RLE: 1,
-			TilesWide: world.size[0],
-			TilesHigh: world.size[1],
+			TilesWide: world.size[0] * CHUNK_WIDTH,
+			TilesHigh: world.size[1] * CHUNK_HEIGHT,
 			TileTypes: tiles
 		},
 		Plots: {
