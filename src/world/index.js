@@ -37,13 +37,18 @@ export function deserializeWorld(worldJson) {
 	const visibilityJson = worldJson['Plots']['PlotsVisible'];
 	const size = [tileJson['TilesWide'], tileJson['TilesHigh']];
 	const chunks = decompressChunks(visibilityJson, tileJson['TileTypes'], size);
+	// Structures
+	const structures = new Map();
+	for (const resource of worldJson['Resources']['Resources']) {
+		structures.set(resource['Type'], resource['Count']);
+	}
 	// Entities
 	for (let i = 0; i < worldJson['Objects'].length; ++i) {
 		const entityJson = worldJson['Objects'][i];
 		const [cX, cY, dX, dY] = globalToChunkPosition(entityJson['TX'], entityJson['TY']);
 		chunks[cY][cX].tiles[dY][dX].entities.push(deserializeEntity(entityJson));
 	}
-	return new World(options, spawn, chunks);
+	return new World(options, spawn, chunks, structures);
 }
 
 export function serializeWorld(world) {
@@ -72,10 +77,18 @@ export function serializeWorld(world) {
 			RLE: 1,
 			TilesWide: world.size[0],
 			TilesHigh: world.size[1],
-			TileTypes: tiles
+			TileTypes: tiles,
+			Soil: [],
+			PartUsed: [],
+			Used: []
 		},
 		Plots: {
 			PlotsVisible: visibility
+		},
+		Resources: {
+			Resources: Array.from(world.structures, ([name, count]) => new Object({Type: name, Count: count})),
+			ReservedTypes: [],
+			ReservedCount: []
 		},
 		Objects: entities
 	};
@@ -84,10 +97,11 @@ export function serializeWorld(world) {
 // Classes
 export class World {
 	/* Constructor */
-	constructor(options, spawn, chunks) {
+	constructor(options, spawn, chunks, structures) {
 		this.options = options;
 		this.spawn = spawn;
 		this.chunks = chunks;
+		this.structures = structures;
 	}
 	/* Instance Methods */
 	getChunk(x, y) {
