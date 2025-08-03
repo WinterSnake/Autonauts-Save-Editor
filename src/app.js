@@ -4,6 +4,7 @@ import { deserializeWorld, serializeWorld } from './world/index.js';
 // Constants
 const uploadButton = document.getElementById('uploadWorld');
 const downloadButton = document.getElementById('downloadWorld');
+const menuDialog = document.getElementById('menu');
 
 // Body
 let world = undefined;
