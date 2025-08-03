@@ -17,6 +17,17 @@ export function globalToChunkPosition(x, y) {
 	];
 }
 
+export function indexToChunkPosition(idx, stride) {
+	return [
+		// Chunk (cX, cY)
+		Math.floor(idx % stride / CHUNK_WIDTH),
+		Math.floor(idx / stride / CHUNK_HEIGHT),
+		// Offset (dX, dY)
+		idx % CHUNK_WIDTH,
+		Math.floor(idx / stride) % CHUNK_HEIGHT
+	];
+}
+
 function* compressTiles() {
 	let current = null;
 	let counter = 0;
@@ -38,18 +49,19 @@ function* compressTiles() {
 }
 
 export function compressChunks(chunks, size) {
-	const entities = [];
+	const [width, height] = [size[0], size[1]];
 	// Tile disassembler
-	let tiles = [];
+	const tiles = [];
+	const entities = [];
 	const tileIter = compressTiles();
 	tileIter.next();
-	for (let y = 0; y < size[1]; ++y) {
-		for (let x = 0; x < size[0]; ++x) {
+	for (let y = 0; y < height; ++y) {
+		for (let x = 0; x < width; ++x) {
 			const [cX, cY, dX, dY] = globalToChunkPosition(x, y);
 			const tile = chunks[cY][cX].tiles[dY][dX];
 			const compressed = tileIter.next(tile.id);
 			if (compressed.value !== undefined) {
-				tiles = tiles.concat(compressed.value);
+				tiles.push(...compressed.value);
 			}
 			// Entities
 			for (const entity of tile.entities) {
@@ -57,7 +69,7 @@ export function compressChunks(chunks, size) {
 			}
 		}
 	}
-	tiles = tiles.concat(tileIter.next(null).value);
+	tiles.push(...tileIter.next(null).value);
 	// Chunk disassembler
 	const visibility = [];
 	for (let y = 0; y < chunks.length; ++y) {
@@ -77,30 +89,26 @@ function* decompressTiles(compressedTiles) {
 }
 
 export function decompressChunks(visibility, compressedTiles, size) {
-	const chunkSize = [size[0] / CHUNK_WIDTH, size[1] / CHUNK_HEIGHT];
+	const [width, height, chunkWidth, chunkHeight] = [
+		size[0], size[1],
+		size[0] / CHUNK_WIDTH, size[1] / CHUNK_HEIGHT
+	];
 	// Tile assembler
-	const tiles = [...Array(chunkSize[1])].map(row => [...Array(chunkSize[0])].map(y => [...Array(CHUNK_HEIGHT)].map(x => [...Array(CHUNK_WIDTH)])));
+	const tiles = [...Array(chunkHeight)].map(row => [...Array(chunkWidth)].map(y => [...Array(CHUNK_HEIGHT)].map(x => [...Array(CHUNK_WIDTH)])));
 	const tileIter = decompressTiles(compressedTiles);
-	for (let i = 0; i < size[0] * size[1]; ++i) {
-		const [x, y, dX, dY] = [
-			// Chunk (x, y)
-			Math.floor(i % size[0] / CHUNK_WIDTH),
-			Math.floor(i / size[0] / CHUNK_HEIGHT),
-			// Offset (dX, dY)
-			i % CHUNK_WIDTH,
-			Math.floor(i / size[0]) % CHUNK_HEIGHT
-		];
-		tiles[y][x][dY][dX] = {
+	for (let i = 0; i < width * height; ++i) {
+		const [cX, cY, dX, dY] = indexToChunkPosition(i, width);
+		tiles[cY][cX][dY][dX] = {
 			id: tileIter.next().value,
 			entities: []
 		};
 	}
 	// Chunk assembler
-	const chunks = [...Array(chunkSize[1])].map(row => [...Array(chunkSize[0])]);
+	const chunks = [...Array(chunkHeight)].map(row => [...Array(chunkWidth)]);
 	for (let i = 0; i < visibility.length; ++i) {
 		const [x, y] = [
-			i % chunkSize[0],
-			Math.floor(i / chunkSize[0])
+			i % chunkWidth,
+			Math.floor(i / chunkWidth)
 		];
 		chunks[y][x] = {
 			isVisible: Boolean(visibility[i]),
