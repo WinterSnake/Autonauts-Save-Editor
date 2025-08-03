@@ -3,6 +3,7 @@ export function deserializeEntity(entityJson) {
 	const entity = {
 		name: entityJson['ID'],
 		uid: entityJson['UID'],
+		despawn: false,
 	};
 	return entity;
 }

@@ -1,5 +1,9 @@
 // Imports
-import { CHUNK_WIDTH, CHUNK_HEIGHT, compressChunks, decompressChunks, globalToChunkPosition } from './chunk.js';
+import {
+	CHUNK_WIDTH, CHUNK_HEIGHT,
+	globalToChunkPosition,
+	compressChunks, decompressChunks,
+} from './chunk.js';
 import { deserializeEntity } from './entity.js';
 
 // Constants
@@ -43,17 +47,24 @@ export function deserializeWorld(worldJson) {
 		structures.set(resource['Type'], resource['Count']);
 	}
 	// Entities
-	for (let i = 0; i < worldJson['Objects'].length; ++i) {
-		const entityJson = worldJson['Objects'][i];
+	const uidMap = new Map();
+	for (const entityJson of worldJson['Objects']) {
+		const entity = deserializeEntity(entityJson);
 		const [cX, cY, dX, dY] = globalToChunkPosition(entityJson['TX'], entityJson['TY']);
-		chunks[cY][cX].tiles[dY][dX].entities.push(deserializeEntity(entityJson));
+		uidMap.set(entity.uid, entity);
+		chunks[cY][cX].tiles[dY][dX].entities.push(entity);
+	}
+	for (const uid of worldJson['DespawnManager']['Objects']) {
+		const entity = uidMap.get(uid);
+		entity.despawn = true;
 	}
 	return new World(options, spawn, chunks, structures);
 }
 
 export function serializeWorld(world) {
 	// Chunks | Entities
-	const [visibility, tiles, entities] = compressChunks(world.chunks, world.size);
+	const compressedChunks = compressChunks(world.chunks, world.size);
+	const [visibility, tiles, entities, despawnPool] = compressedChunks;
 	// Autonauts world object
 	return {
 		AutonautsWorld: 1,
@@ -90,7 +101,10 @@ export function serializeWorld(world) {
 			ReservedTypes: [],
 			ReservedCount: []
 		},
-		Objects: entities
+		Objects: entities,
+		DespawnManager: {
+			Objects: despawnPool
+		}
 	};
 }
 

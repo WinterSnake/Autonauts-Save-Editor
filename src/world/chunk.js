@@ -17,6 +17,10 @@ export function globalToChunkPosition(x, y) {
 	];
 }
 
+export function chunkToGlobalPosition(cX, cY, dX, dY) {
+	return [cX * CHUNK_WIDTH + dX, cY * CHUNK_HEIGHT + dY];
+}
+
 export function indexToChunkPosition(idx, stride) {
 	return [
 		// Chunk (cX, cY)
@@ -44,7 +48,6 @@ function* compressTiles() {
 		}
 		counter += 1;
 	}
-	if (current === null) throw new Error("Expected current to be set before ending loop");
 	yield [current, counter];
 }
 
@@ -53,6 +56,7 @@ export function compressChunks(chunks, size) {
 	// Tile disassembler
 	const tiles = [];
 	const entities = [];
+	const despawnPool = [];
 	const tileIter = compressTiles();
 	tileIter.next();
 	for (let y = 0; y < height; ++y) {
@@ -66,6 +70,10 @@ export function compressChunks(chunks, size) {
 			// Entities
 			for (const entity of tile.entities) {
 				entities.push(serializeEntity(entity, x, y));
+				// Despawn
+				if (entity.despawn) {
+					despawnPool.push(entity.uid);
+				}
 			}
 		}
 	}
@@ -77,7 +85,7 @@ export function compressChunks(chunks, size) {
 			visibility.push(+chunks[y][x].isVisible);
 		}
 	}
-	return [visibility, tiles, entities];
+	return [visibility, tiles, entities, despawnPool];
 }
 
 function* decompressTiles(compressedTiles) {
